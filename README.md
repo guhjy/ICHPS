@@ -6,4 +6,4 @@ The course outlines methods of estimating treatment effects with categorical tre
 
 Each set of Rcode links to a Dropbox .csv which contains public data for anyone to use. Separate codes are provided for nominal and ordinal treatments. 
 
-Questions? Email [Mike](mlopez1@skidmore.edu) or [Roee](roee_gutman@brown.edu]. 
+Questions? Email [Mike](mlopez1@skidmore.edu) or [Roee](roee_gutman@brown.edu). 
