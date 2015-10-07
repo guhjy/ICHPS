@@ -8,4 +8,6 @@ Each set of Rcode links to a Dropbox .csv which contains public data for anyone 
 
 Separate codes are provided for [nominal](https://github.com/statsbylopez/ICHPS/blob/master/NominalTreatment.R) and [ordinal](https://github.com/statsbylopez/ICHPS/blob/master/OrdinalTreatment.R) treatments. 
 
+For links to primary papers cited and implemented, see the links page [here](https://github.com/statsbylopez/ICHPS/blob/master/Citations.md)
+
 Questions? Email [Mike](mlopez1@skidmore.edu) or [Roee](roee_gutman@brown.edu). 
