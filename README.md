@@ -12,4 +12,4 @@ Separate codes are provided for [nominal](https://github.com/statsbylopez/ICHPS/
 
 For links to primary papers cited and implemented, see the links page [here](https://github.com/statsbylopez/ICHPS/blob/master/Citations.md).
 
-Questions? Email [Mike](mlopez1@skidmore.edu) or [Roee](roee_gutman@brown.edu). 
+Questions? Email Mike (mlopez1@skidmore.edu) or Roee (roee_gutman@brown.edu). 
