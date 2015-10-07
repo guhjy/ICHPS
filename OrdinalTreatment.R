@@ -206,3 +206,4 @@ sum(dat1$weight>10)
 max(dat1$weight)
 
 
+ 
