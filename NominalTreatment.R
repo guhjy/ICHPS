@@ -1,4 +1,25 @@
+---
+title: "Nominal Treatment"
+author: "Michael Lopez and Roee Gutman"
+date: "October 7, 2015"
+output: pdf_document
+---
+
+```{r knitr_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=6, fig.height=3.6, warning=FALSE,
+message=FALSE)
+```
+
+Note: all of this code can be found on Github by going here: \url{https://github.com/statsbylopez/ICHPS}. 
+
+## First, some packages that we need. 
+
+Note: use `install.packages('name')` to install a package in R. 
+
+```{r}
 rm(list = ls())
+library(RCurl) 
+library(mosaic)
 library(lmtest)
 library(MASS)
 library(nbpMatching)
@@ -12,10 +33,12 @@ library(car)
 library(RCurl)
 library(Matching)
 set.seed(0)
+```
 
 
-# Our interest is the causal effect of risky behavior (None, Alcohol only, Alcohol and Smoking) on blood pressure.
+## Our interest is the causal effect of risky behavior (None, Alcohol only, Alcohol and Smoking) on blood pressure.
 
+```{r}
 x <- getURL("https://docs.google.com/spreadsheets/d/1aC7nBSDxXX6UZo5pUGuWD2BNiuapRFwqOTsP4xWLl2w/pub?output=csv")
 dat<-read.csv(text = x)
 dat<-arrange(dat,Nom.Treatment)
@@ -33,11 +56,13 @@ head(dat)
 #Adding a variable with more bias (for sake of comparison)
 bias<-1
 dat$mealsfafh<-rt(nrow(dat),7,ncp=c(rep(0,1056),rep(bias,1345),rep(2*bias,522)))
+```
 
+## Pairwise comparisons
 
+### GPS distributions of full sample
 
-#Pairwise comparisons
-
+```{r}
 fit1<-multinom(as.formula(var.list),data=dat)
 temp<-data.frame(fitted(fit1))
 colnames(temp)<-c("p.r","p.s","p.t")
@@ -54,27 +79,32 @@ index.0<-m.2$Nom.Treatment=="0.None"
 index.1<-m.2$Nom.Treatment=="Alcohol.only"
 index.2<-m.2$Nom.Treatment=="Alcohol.Smoker"
 
-#GPS distributions of full sample
-
 par(mar=c(4,4,4,1))
 par(mfrow=c(1,1))
-df<-data.frame(x1=m.2$pr.rs,x2=m.2$pr.rt,
+df<-data.frame(x1=m.2$p.s,x2=m.2$p.t,
     Treatment=c(rep("T=r",sum(index.0)),rep("T=s",sum(index.1)),
     rep("T=t",sum(index.2))))
 
 with(df, dataEllipse(logit(x1), logit(x2), Treatment, id.n=0, pch=15:17, 
-                     main="95% ellipsoids, binary propensity scores",
-     group.labels=c("T = r", "T = s", "T = t"), xlab="logit(P(T=r|T=r or T=s))",
-     ylab="logit(P(T=r|T=r or T=t))",level=.95, fill=TRUE, fill.alpha=0.1))
+                     main="95% ellipsoids",
+     group.labels=c("T = r", "T = s", "T = t"), xlab="logit(P(T=s|X))",
+     ylab="logit(P(T=t|X))",level=.95, fill=TRUE, fill.alpha=0.1))
 
 
-plot(-30,1,xlim=c(-5,5),ylim=c(-7,9),xlab="logit(P(T=r|T=r or T=s))",
-     ylab="logit(P(T=r|T=r or T=t))",main="95% ellipsoids, binary propensity scores")
+plot(-30,1,xlim=c(-7,5),ylim=c(-8,4),xlab="logit(P(T=s|X))",
+     ylab="logit(P(T=t|X))",main="95% ellipsoids")
 
 with(df, dataEllipse(logit(x1), logit(x2), Treatment,plot.points=FALSE,
                      group.labels=c("Neither", "A. only", "A & S"),level=.95, fill=TRUE, fill.alpha=0.1))
 
-#Pairwise matching
+```
+
+
+
+## Pairwise procedures
+
+
+```{r}
 
 m.2rs<-filter(m.2,Nom.Treatment!="Alcohol.Smoker")
 m.2rt<-filter(m.2,Nom.Treatment!="Alcohol.only")
@@ -90,31 +120,49 @@ n.r<-tab.T[1]
 n.s<-tab.T[2]
 n.t<-tab.T[3]
 
-#GPS distributions among those matched using pairwise procedure
+```
+\
+\
+\
+\
+\
 
-df<-data.frame(x1=c(m.2$pr.rs[oo1],m.2$pr.rs[oo2],m.2$pr.rs[oo3+n.s]),
-               x2=c(m.2$pr.rt[oo1],m.2$pr.rt[oo2],m.2$pr.rt[oo3+n.s]),
+
+## GPS distributions among those matched using pairwise procedure
+
+```{r}
+df<-data.frame(x1=c(m.2$p.s[oo1],m.2$p.s[oo2],m.2$p.s[oo3+n.s]),
+               x2=c(m.2$p.t[oo1],m.2$p.t[oo2],m.2$p.t[oo3+n.s]),
      Treatment=c(rep("T=r",length(m.2$pr.rt[oo1])),rep("T=s",length(m.2$pr.rs[oo2])),
                  rep("T=t",length(m.2$pr.rs[oo3+n.s]))),ID = c(oo1,oo2,(oo3++n.s)) )
 
-with(df, dataEllipse(logit(x1), logit(x2), Treatment, id.n=0, pch=15:17, center.pch="+",
-    main="95% ellipsoids, binary propensity scores",
-    group.labels=c("T = r", "T = s", "T = t"), xlab="P(T=r|T=r,s)",ylab="P(T=r|T=r,t)",
-    level=.95, fill=TRUE, fill.alpha=0.1,xlim=c(-4, 3),ylim=c(-5, 5.5)))
+#Ellipsoid graph after pairwise procedure
 
-
-plot(-30,1,xlim=c(-4,3),ylim=c(-5,5),xlab="logit(P(T=r|T=r or T=s))",
-     ylab="logit(P(T=r|T=r or T=t))",main="95% ellipsoids, binary propensity scores")
+plot(-30,1,xlim=c(-2.5, 3),ylim=c(-6, 3),xlab="logit(P(T=s|X))",
+     ylab="logit(P(T=t|X))",main="95% ellipsoids, binary matching")
 
 with(df, dataEllipse(logit(x1), logit(x2), Treatment, id.n=0, plot.points=FALSE, center.pch="+",
     group.labels=c("T = r", "T = s", "T = t"), level=.95, fill=TRUE, fill.alpha=0.1))
+```
+\
+\
+\
+\
+\
+\
+\
+\
 
 
 # Matching methods with multiple treatments
 
 ## Drop subjects with extreme GPSs
 
-min.max.Ps<-m.2 %>% group_by(Nom.Treatment) %>% summarize(minR=min(p.r),maxR=max(p.r),minS=min(p.s),maxS=max(p.s),minT=min(p.t),maxT=max(p.t))
+
+```{r}
+min.max.Ps<-m.2 %>% 
+  group_by(Nom.Treatment) %>%      
+  summarise(minR=min(p.r),maxR=max(p.r),minS=min(p.s),maxS=max(p.s),minT=min(p.t),maxT=max(p.t))
 min.max.Ps
 
 m.2$Eligible<-m.2$p.r>=max(min.max.Ps$minR) & m.2$p.r<=min(min.max.Ps$maxR) &
@@ -124,8 +172,14 @@ table(m.2$Eligible)
 
 m.2<-filter(m.2,Eligible)
 
-##Re-fit multinomial model
+```
 
+
+
+
+#### Re-fit multinomial model
+
+```{r}
 fit2<-multinom(as.formula(var.list),data=m.2)
 temp<-data.frame(fitted(fit2))
 colnames(temp)<-c("p.r","p.s","p.t")
@@ -134,63 +188,87 @@ m.3<-m.2 %>%
 m.2<-cbind(m.3,temp)
 m.2$pr.rs<-m.2$p.r/(m.2$p.r+m.2$p.s)
 m.2$pr.rt<-m.2$p.r/(m.2$p.r+m.2$p.t)
+```
 
+## Method 1: Multiple regression model (no weighting, no matching)
 
-### Multiple regression model (no weighting, no matching)
-
+```{r}
 var.list<-paste(Vars, collapse="+")
 var.list<-paste(var.list,"Nom.Treatment",sep="+")
 var.list<-paste("bpsystolic",var.list,sep="~")
 fit.MR<-lm(as.formula(var.list),data=dat)
 summary(fit.MR)
+```
 
-### Inverse probability weighting, weights from multinomial logit model
 
-m.2$prob.T<-ifelse(m.2$Nom.Treatment=="0.None",m.2$p.r,ifelse(m.2$Nom.Treatment=="Alcohol.only",
-    m.2$p.s,m.2$p.t))
+## Method 2: Inverse probability weighting, weights from multinomial logit model
+
+
+```{r}
+m.2$prob.T<-ifelse(m.2$Nom.Treatment=="0.None",m.2$p.r,
+      ifelse(m.2$Nom.Treatment=="Alcohol.only",m.2$p.s,m.2$p.t))
 m.2$ipw<-1/m.2$prob.T
+```
 
-#How we'll judge bias: maximum pairwise absolute standardized bias
+### How we'll judge bias: maximum pairwise absolute standardized bias
 
+```{r}
 #First, some functions we'll need
 Vars.Bias<-colnames(dat)[c(1:14)]
 cols<-c(1:14)
-funcMSB<-function(SD,x1,x2,x3){max(abs((mean(x1)-mean(x2))/SD),abs((mean(x1)-mean(x3))/SD),abs((mean(x3)-mean(x2))/SD))}
+funcMSB<-function(SD,x1,x2,x3){max(abs((mean(x1)-mean(x2))/SD),
+        abs((mean(x1)-mean(x3))/SD),abs((mean(x3)-mean(x2))/SD))}
 funcMSB2<-function(SD,x1,x2,x3){max(abs(x1-x2)/SD,abs(x1-x3)/SD,abs(x3-x2)/SD)}
 sds<-NULL
 for (i in 1:length(Vars.Bias)){sds[i]<-sd(m.2[m.2$Nom.Treatment=="0.None",cols[i]])}
-
+```
 
 ### Covariates bias before weighting, calculated using maximum pairwise SB
+
+```{r}
 Start.msbs<-NA
 for (i in 1:length(Vars.Bias)){
-  Start.msbs[i]<-funcMSB2(sds[i],mean(m.2[m.2$Nom.Treatment=="0.None",cols[i]]),mean(m.2[m.2$Nom.Treatment=="Alcohol.only",cols[i]]),
-                            mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",cols[i]]))}
+  Start.msbs[i]<-funcMSB2(sds[i],mean(m.2[m.2$Nom.Treatment=="0.None",cols[i]]),
+  mean(m.2[m.2$Nom.Treatment=="Alcohol.only",cols[i]]),
+  mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",cols[i]]))}
 names(Start.msbs)<-colnames(m.2)[1:14]
 round(Start.msbs,3)
+```
 
-#### Example of bias:
+### Example of bias:
+
+```{r}
 bwplot(age~Nom.Treatment,data=m.2)
 tally(incO~Nom.Treatment,data=m.2,format="proportion")
+```
+
 
 ### After weighting using weights from multinomial logistic regression
+
+```{r}
 IPTW.msbs<-NULL
 for (i in 1:length(Vars.Bias)){
-  IPTW.msbs[i]<-funcMSB(sds[i],weighted.mean(m.2[m.2$Nom.Treatment=="0.None",cols[i]],m.2[m.2$Nom.Treatment=="0.None",]$ipw),
-      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.only",cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.only",]$ipw),
-      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.Smoker",]$ipw))}
+  IPTW.msbs[i]<-funcMSB(sds[i],weighted.mean(m.2[m.2$Nom.Treatment=="0.None",
+                         cols[i]],m.2[m.2$Nom.Treatment=="0.None",]$ipw),
+      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.only",
+                        cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.only",]$ipw),
+      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",
+                        cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.Smoker",]$ipw))}
 names(IPTW.msbs)<-colnames(m.2)[1:14]
 round(IPTW.msbs,3)
+```
 
+## Method 3: Weights using Generalized Boosted Models
 
-### Weights using Generalized Boosted Models
+Note the additional code for other treatment effects
 
+```{r}
 var.list<-paste(Vars.Bias,collapse="+")
 var.list<-paste("Nom.Treatment",var.list,sep="~")
 m.3<-m.2[,colnames(m.2)%in%c("Nom.Treatment",Vars.Bias,"bpsystolic")]
 
-
-ps.out1<- mnps(as.formula(var.list), data=m.2,stop.method = c("es.mean", "ks.mean"),treatATT="0.None",verbose=FALSE,
+ps.out1<- mnps(as.formula(var.list), data=m.2,stop.method = c("es.mean", "ks.mean"),
+             treatATT="0.None",verbose=FALSE,
              n.trees=10000, interaction.depth=2, estimand="ATT")
 m.2$ipw.GBM = get.weights(ps.out1)
 
@@ -201,18 +279,26 @@ m.2$ipw.GBM = get.weights(ps.out1)
 
 #### A command using GBM to look at the covariates' bias
 #bal.table(ps.out)
+```
 
-#Covariates bias after weighting using GBM
+### Covariates bias after weighting using GBM
+
+```{r}
 GBM.msbs<-NULL
 for (i in 1:length(cols)){
-  GBM.msbs[i]<-funcMSB(sds[i],weighted.mean(m.2[m.2$Nom.Treatment=="0.None",cols[i]],m.2[m.2$Nom.Treatment=="0.None",]$ipw.GBM),
-                        weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.only",cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.only",]$ipw.GBM),
-                        weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.Smoker",]$ipw.GBM))}
+  GBM.msbs[i]<-funcMSB(sds[i],weighted.mean(m.2[m.2$Nom.Treatment=="0.None",
+              cols[i]],m.2[m.2$Nom.Treatment=="0.None",]$ipw.GBM),
+      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.only",
+              cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.only",]$ipw.GBM),
+      weighted.mean(m.2[m.2$Nom.Treatment=="Alcohol.Smoker",
+               cols[i]],m.2[m.2$Nom.Treatment=="Alcohol.Smoker",]$ipw.GBM))}
 names(GBM.msbs)<-colnames(m.2)[1:14]
 round(GBM.msbs,3)
+```
 
+## Method 4: Vector Matching
 
-# Vector Matching
+```{r}
 quintiles.t<-quantile(m.2$pr.rt,c(.2,.4,.6,.8))
 clustnum<-5
 
@@ -224,13 +310,14 @@ m.2$Quint.s<-1
 temp.s<-kmeans(logit(m.2$p.s),clustnum)
 m.2$Quint.s<-temp.s$cluster
 
-table(m.2$Quint.s,m.2$Quint.t)
 temp.s<-filter(m.2,Nom.Treatment!="Alcohol.Smoker")
 temp.t<-filter(m.2,Nom.Treatment!="Alcohol.only")
 
-#see Abadie_Imbens (Table 1)
-Ms<-Matchby(Y=NULL, Tr=temp.s$Nom.Treatment=="0.None",X=logit(temp.s$p.r),by=temp.s$Quint.t,calip=.1,replace=T,estimand="ATT") 
-Mt<-Matchby(Y=NULL, Tr=temp.t$Nom.Treatment=="0.None",X=logit(temp.t$p.r),by=temp.t$Quint.s,calip=.1,replace=T,estimand="ATT")
+#see Abadie_Imbens paper (Table 1)
+Ms<-Matchby(Y=temp.s$bpsystolic, Tr=temp.s$Nom.Treatment=="0.None",
+            X=logit(temp.s$p.r),by=temp.s$Quint.t,calip=.1,replace=T,estimand="ATT") 
+Mt<-Matchby(Y=temp.t$bpsystolic, Tr=temp.t$Nom.Treatment=="0.None",
+            X=logit(temp.t$p.r),by=temp.t$Quint.s,calip=.1,replace=T,estimand="ATT")
 
 rownames(m.2)<-1:nrow(m.2)
 m.2$id<-1:nrow(m.2)
@@ -245,52 +332,67 @@ triplets<-cbind(rsmatch[order(rsmatch[,1]),],rtmatch[order(rtmatch[,1]),])
 triplets<-as.matrix(triplets[,c(1,2,4)])
 n.trip<-nrow(triplets)
 n.tripP<-nrow(triplets)/sum(m.2$Nom.Treatment=="0.None")
+```
 
+Vector matching forms `ntrip` triplets, which is `round(n.tripP,3` percent of the fraction receiving the control group which were eligible to be matched.  
 
+### Bias after Vector Matching
+
+```{r}
 VM.msbs<-NA
 for (i in 1:length(cols)){
   VM.msbs[i]<-funcMSB(sds[i],m.2[,i][triplets[,1]],m.2[,i][triplets[,2]],m.2[,i][triplets[,3]])}
 names(VM.msbs)<-colnames(m.2)[1:14]
 round(VM.msbs,3)
+```
 
+### Comparison of ellipsoids using matched cohort
 
-##Comparison of ellipsoids using matched cohort
+Compare to the ellipsoids shown earlier
 
+```{r}
 df<-data.frame(
-  x1=c(m.2$pr.rs[triplets[,1]],m.2$pr.rs[triplets[,2]],m.2$pr.rs[triplets[,3]]),
-  x2=c(m.2$pr.rt[triplets[,1]],m.2$pr.rt[triplets[,2]],m.2$pr.rt[triplets[,3]]),
+  x1=c(m.2$p.s[triplets[,1]],m.2$p.s[triplets[,2]],m.2$p.s[triplets[,3]]),
+  x2=c(m.2$p.t[triplets[,1]],m.2$p.t[triplets[,2]],m.2$p.t[triplets[,3]]),
   Treatment=c(rep("T=r",n.trip),rep("T=s",n.trip),rep("T=t",n.trip)) )
 
-plot(-30,1,xlim=c(-3,2),ylim=c(-3,7),xlab="logit(P(T=r|T=r or T=s))",
-     ylab="logit(P(T=r|T=r or T=t))",main="95% ellipsoids, matched on a vector")
+plot(-30,1,xlim=c(-3,2),ylim=c(-7,2),xlab="logit(P(T=s|X))",
+     ylab="logit(P(T=t|X))",main="95% ellipsoids, matched on a vector")
 
 with(df, dataEllipse(logit(x1), logit(x2), Treatment, id.n=0, plot.points=FALSE, center.pch="+",
-                     group.labels=c("T = r", "T = s", "T = t"), level=.95, fill=TRUE, fill.alpha=0.1))
+     group.labels=c("T = r", "T = s", "T = t"), level=.95, fill=TRUE, fill.alpha=0.1))
+```
 
-## This time, including full reference group distribution
+### Same plot, this time including the full reference group distribution we want to generalize to
+
+```{r}
 df<-data.frame(
-  x1=c(m.2$pr.rs[m.2$Nom.Treatment=="0.None"],m.2$pr.rs[triplets[,1]],m.2$pr.rs[triplets[,2]],m.2$pr.rs[triplets[,3]]),
-  x2=c(m.2$pr.rt[m.2$Nom.Treatment=="0.None"],m.2$pr.rt[triplets[,1]],m.2$pr.rt[triplets[,2]],m.2$pr.rt[triplets[,3]]),
+  x1=c(m.2$p.s[m.2$Nom.Treatment=="0.None"],m.2$p.s[triplets[,1]],m.2$p.s[triplets[,2]],m.2$p.s[triplets[,3]]),
+  x2=c(m.2$p.t[m.2$Nom.Treatment=="0.None"],m.2$p.t[triplets[,1]],m.2$p.t[triplets[,2]],m.2$p.t[triplets[,3]]),
   Treatment=c(rep("Null",738),rep("T=r",n.trip),rep("T=s",n.trip),rep("T=t",n.trip)) )
 
-plot(-30,1,xlim=c(-3,2),ylim=c(-3,7),xlab="logit(P(T=r|T=r or T=s))",
-     ylab="logit(P(T=r|T=r or T=t))",main="95% ellipsoids, binary propensity scores")
+plot(-30,1,xlim=c(-3,2),ylim=c(-7,2),xlab="logit(P(T=s|X))",
+     ylab="logit(P(T=t|X))",main="95% ellipsoids, matching on a vector")
 
 with(df, dataEllipse(logit(x1), logit(x2), Treatment, id.n=0, plot.points=FALSE, center.pch="+",
                      group.labels=c("T = r", "T = s", "T = t"), level=.95, fill=TRUE, fill.alpha=0.1))
 
+```
 
 ## Overall comparison of covariates' bias
 
+```{r}
 covariates.bias<-round(rbind(Start.msbs,GBM.msbs,VM.msbs,IPTW.msbs),3)
 covariates.bias
+```
 
+\newpage
 
-#Analysis phase
+## Analysis phase
 
+Note that preferred estimates for variance terms would use a bootstrap procedure. 
 
-#Estimating treatment effects using MLR weights
-
+```{r}
 EY.r = sum(m.2$bpsystolic*as.numeric(m.2$Nom.Treatment=="0.None")/m.2$p.r)*
   sum(as.numeric(m.2$Nom.Treatment=="0.None")/m.2$p.r)^(-1)
 EY.s = sum(m.2$bpsystolic*as.numeric(m.2$Nom.Treatment=="Alcohol.only")/m.2$p.s)*
@@ -309,9 +411,9 @@ VY.t =  sum(VarY*((as.numeric(m.2$Nom.Treatment=="Alcohol.Smoker")/m.2$p.t)/
                     sum(as.numeric(m.2$Nom.Treatment=="Alcohol.Smoker")/m.2$p.t))^2)
 Var.W<-cbind(VY.r,VY.s,VY.t)
 
-data.frame(Effect=ATEW[2]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[2])) #Alcohol only versus none
-data.frame(Effect=ATEW[3]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[3])) #Alcohol and smoking versus none
-data.frame(Effect=ATEW[3]-ATEW[2],Var=sqrt(Var.W[2]+Var.W[3])) #Alcohol and smoking versus alcohol only
+#data.frame(Effect=ATEW[2]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[2])) #Alcohol only versus none
+#data.frame(Effect=ATEW[3]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[3])) #Alcohol and smoking versus none
+#data.frame(Effect=ATEW[3]-ATEW[2],Var=sqrt(Var.W[2]+Var.W[3])) #Alcohol and smoking versus alcohol only
 
 IPTW.ATE<-round(c(ATEW[2]-ATEW[1],ATEW[3]-ATEW[1],ATEW[3]-ATEW[2]),3)
 
@@ -335,24 +437,23 @@ VY.t =  sum(VarY*((as.numeric(m.2$Nom.Treatment=="Alcohol.Smoker")*m.2$ipw.GBM)/
                     sum(as.numeric(m.2$Nom.Treatment=="Alcohol.Smoker")*m.2$ipw.GBM))^2)
 Var.W<-cbind(VY.r,VY.s,VY.t)
 
-data.frame(Effect=ATEW[2]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[2])) #Alcohol only versus none
-data.frame(Effect=ATEW[3]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[3])) #Alcohol and smoking versus none
-data.frame(Effect=ATEW[3]-ATEW[2],Var=sqrt(Var.W[2]+Var.W[3])) #Alcohol and smoking versus alcohol only
+#data.frame(Effect=ATEW[2]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[2])) #Alcohol only versus none
+#data.frame(Effect=ATEW[3]-ATEW[1],Var=sqrt(Var.W[1]+Var.W[3])) #Alcohol and smoking versus none
+#data.frame(Effect=ATEW[3]-ATEW[2],Var=sqrt(Var.W[2]+Var.W[3])) #Alcohol and smoking versus alcohol only
 
-GBM.ATE<-round(c(ATEW[2]-ATEW[1],ATEW[3]-ATEW[1],ATEW[3]-ATEW[2]),3)
+GBM.ATT<-round(c(ATEW[2]-ATEW[1],ATEW[3]-ATEW[1],ATEW[3]-ATEW[2]),3)
 
 
 # Treatment effects using VM
 
-VM.ATT<-round(c(mean(m.2$bpsystolic[triplets[,2]]-m.2$bpsystolic[triplets[,1]]),
-    mean(m.2$bpsystolic[triplets[,3]]-m.2$bpsystolic[triplets[,1]]),
-    mean(m.2$bpsystolic[triplets[,3]]-m.2$bpsystolic[triplets[,2]])),3)
+VM.ATT<-round(c(Ms$est,Mt$est,Mt$est-Ms$est),3)
 
-
-TEs<-rbind(IPTW.ATE,GBM.ATE,VM.ATT)
+TEs<-rbind(IPTW.ATE,GBM.ATT,VM.ATT)
 colnames(TEs)<-c("Treatment 2 versus 1","Treatment 3 versus 1","Treatment 3 versus 2")
 TEs
+```
 
+#### Final notes
 
 
 
