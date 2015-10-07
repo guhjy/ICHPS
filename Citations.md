@@ -1,4 +1,4 @@
-# Here's a list of citations that you should be aware of:
+# Important citations
 
 ## General papers for categorical treatments \& causal inference
 
