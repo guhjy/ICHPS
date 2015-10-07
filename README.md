@@ -1,4 +1,6 @@
-# ICHPS
+# ICHPS: Workshop 8
+
+## Workshop 8: Causal Inference in Healthcare Studies with Multiple Treatments
 
 The attached code is in reference to a short course taught at the 2015 International Conference on Health Policy Statistics by Michael Lopez and Roee Gutman.
 
