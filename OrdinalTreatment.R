@@ -23,9 +23,9 @@ summary(polr.out)
 # It is generally recommended to drop subjects with extreme linear predictors and to refit model
 
 dat$linpred<-polr.out$lp
-minLPs<-dat %>% group_by(labeluse) %>% summarize(minLP=min(linpred))
+minLPs<-dat %>% group_by(labeluse) %>% summarise(minLP=min(linpred))
 max.lower<-max(minLPs[,2])
-maxLPs<-dat %>% group_by(labeluse) %>% summarize(maxLP=max(linpred))
+maxLPs<-dat %>% group_by(labeluse) %>% summarise(maxLP=max(linpred))
 min.upper<-min(maxLPs[,2])
 boxplot(dat$linpred~dat$labeluse,xlab="Label Use (Low to High)")
 abline(max.lower,0,lty=2,col="red")
